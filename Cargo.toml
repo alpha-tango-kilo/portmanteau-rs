@@ -1,9 +1,14 @@
 [package]
 name = "portmanteau"
+description = "A library to create portmanteaux"
+categories = ["text-processing"]
 version = "0.1.0"
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["alpha-tango-kilo <git@heyatk.com>"]
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+homepage = "https://codeberg.org/alpha-tango-kilo/portmanteau-rs"
+repository = "https://codeberg.org/alpha-tango-kilo/portmanteau-rs"
 
 [dependencies]
 smallvec = "1.6"
