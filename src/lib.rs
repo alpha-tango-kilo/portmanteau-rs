@@ -1,3 +1,17 @@
+#![deny(missing_docs)]
+
+//! A portmanteau is a made up word derived as a combination of two other words, e.g. "liquid" + "slinky" = "liquinky"
+//!
+//! It isn't always possible to produce a portmanteau from the input words (there are some quality checks in place), so the exposed `portmanteau` function returns an `Option<String>`.
+//! This is currently the only function the crate exposes
+//!
+//! This library's initial implementation was largely inspired by the work of [jamcowl's portmanteau bot](https://github.com/jamcowl/PORTMANTEAU-BOT).
+//! The full implementation is not available in their repository and over time my implementation may differ from theirs in terms of approach and output (it already does in some cases)
+//!
+//! Please do not hold myself (or any contributer to this repository) accountable for any derogatory words or slurs you are able to have this algorithm produce.
+//! There are no checks for bad language in place, and there are no plans to add any.
+//! It is not my (or any contributer's) job to determine what is or isn't offensive
+
 use smallvec::SmallVec;
 
 const MIN_WORD_SIZE: usize = 5;
@@ -60,6 +74,28 @@ fn portmanteau_by_trios(a: &str, b: &str) -> Option<String> {
     None
 }
 
+/// This function creates a portmanteau of the two given words if possible
+///
+/// Both inputs given should be lowercase single words, without punctuation, and 5 or more letters in length
+///
+/// # Examples
+///
+/// ```
+/// use portmanteau::portmanteau;
+///
+///     let something = portmanteau("fluffy", "turtle");
+///     assert_eq!(
+///     something,
+///     Some(String::from("flurtle"))
+///     );
+///
+///     let nothing = portmanteau("tiny", "word");
+///     assert_eq!(
+///     nothing,
+///     None
+///     );
+/// ```
+///
 pub fn portmanteau(a: &str, b: &str) -> Option<String> {
     if a.len() < MIN_WORD_SIZE || b.len() < MIN_WORD_SIZE {
         return None;
