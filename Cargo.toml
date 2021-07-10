@@ -12,3 +12,4 @@ repository = "https://codeberg.org/alpha-tango-kilo/portmanteau-rs"
 
 [dependencies]
 smallvec = "1.6"
+itertools = "0.10"
