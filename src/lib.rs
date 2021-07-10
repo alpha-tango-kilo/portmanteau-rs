@@ -50,14 +50,9 @@ fn portmanteau_by_trios(a: &str, b: &str) -> Option<String> {
         MIN_WORD_SIZE
     );
 
-    let mut a_trios = trios_of(a);
-    let mut b_trios = trios_of(b);
-
-    // Drop first part of a, last two parts of b
-    // Just slice when initiating next stage?
-    a_trios.remove(0);
-    b_trios.pop();
-    b_trios.pop();
+    let a_trios = &trios_of(a)[1..];
+    let b_trios = &trios_of(b);
+    let b_trios = &b_trios[..b_trios.len() - 2];
 
     // Find indexes of matching trios
     // Could optimise by looking at number of shared letters and skipping more entries in the trio if no letters are shared
