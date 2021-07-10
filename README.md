@@ -16,6 +16,14 @@ Please do not hold myself (or any contributer to this repository) accountable fo
 There are no checks for bad language in place, and there are no plans to add any.
 It is not my (or any contributer's) job to determine what is or isn't offensive
 
+## Roadmap
+
+[ ] Optimise/Enhance
+[ ] Better quality control
+[ ] More thorough testing
+[ ] Builder pattern for more configurable generation
+[ ] CLI tool???
+
 ## Licensing
 
 Much the same as Rust is, this library is dual-licensed under MIT or Apache 2.0 at your choosing
