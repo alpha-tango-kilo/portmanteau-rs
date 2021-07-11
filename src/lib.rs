@@ -51,13 +51,22 @@ fn portmanteau_by_trios(a: &str, b: &str) -> Option<String> {
         MIN_WORD_SIZE
     );
 
-    // Instead of always using a, choose smaller of two strings?
-    let a_trios = &trios_of(a)[1..];
-    let ac = AhoCorasick::new(a_trios);
-    ac.earliest_find(&b[..b.len() - 2])
-        .and_then(|m| {
-            Some(format!("{}{}", &a[..m.pattern() + 1], &b[m.start()..]))
-        })
+    if a.len() < b.len() {
+        let a_trios = &trios_of(a)[1..];
+        let ac = AhoCorasick::new(a_trios);
+        ac.earliest_find(&b[..b.len() - 2])
+            .and_then(|m| {
+                Some(format!("{}{}", &a[..m.pattern() + 1], &b[m.start()..]))
+            })
+    } else {
+        let b_trios = &trios_of(b)[..b.len() - 2];
+        let ac = AhoCorasick::new(b_trios);
+        ac.earliest_find(&a[1..])
+            .and_then(|m| {
+                Some(format!("{}{}", &a[..m.end() + 1], &b[m.pattern() + 3..]))
+            })
+    }
+
 }
 
 #[inline]
