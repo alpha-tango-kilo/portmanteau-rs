@@ -16,8 +16,8 @@ use smallvec::SmallVec;
 
 const MIN_WORD_SIZE: usize = 5;
 const EXPECTED_TRIOS: usize = 3;
-const VOWEL_SEARCH_MARGIN: usize = 1;
-const VOWELS: [char; 5] = ['a', 'e', 'i', 'o', 'u'];
+const NUM_OF_VOWELS: usize = 5;
+const VOWELS: [char; NUM_OF_VOWELS] = ['a', 'e', 'i', 'o', 'u'];
 
 // Expects to always take lowercase `s`
 fn has_vowel(s: &str) -> bool {
@@ -72,6 +72,14 @@ fn validate(s: &str) -> bool {
     s.len() >= MIN_WORD_SIZE && s.chars().all(|c| c.is_ascii_lowercase())
 }
 
+#[inline]
+fn index_vowels(s: &str) -> SmallVec<[(usize, char); NUM_OF_VOWELS]> {
+    s.chars()
+        .enumerate()
+        .filter(|(_, char)| VOWELS.contains(char))
+        .collect()
+}
+
 /// This function creates a portmanteau of the two given words if possible
 ///
 /// Both inputs given should be lowercase single words, without punctuation, and 5 or more letters in length.
@@ -109,19 +117,17 @@ pub fn portmanteau(a: &str, b: &str) -> Option<String> {
         return None;
     }
 
+    let a_vowel_indexes = index_vowels(a);
+    let b_vowel_indexes = index_vowels(b);
+
     // Step 4: Match common vowels
     output
         .or_else(|| {
             // Find locations of common vowels, but not those that are too close to the start or end
-            for c in VOWELS {
-                if let Some(a_index) = a[..a.len() - VOWEL_SEARCH_MARGIN].rfind(c) {
-                    if let Some(b_index) = b[VOWEL_SEARCH_MARGIN..].find(c) {
-                        //println!("Found matching vowel pair");
-                        return Some(format!(
-                            "{}{}",
-                            &a[..a_index],
-                            &b[b_index + VOWEL_SEARCH_MARGIN..]
-                        ));
+            for (a_index, a_vowel) in a_vowel_indexes.iter().rev() {
+                for (b_index, b_vowel) in b_vowel_indexes.iter() {
+                    if a_vowel == b_vowel && *a_index >= 1 && *b_index <= b.len() - 2 {
+                        return Some(format!("{}{}", &a[..*a_index], &b[*b_index..]));
                     }
                 }
             }
@@ -129,11 +135,12 @@ pub fn portmanteau(a: &str, b: &str) -> Option<String> {
         })
         // Step 5: Match any two vowels
         .or_else(|| {
-            // Get rightmost vowel of a
-            let a_end = a.rfind(&VOWELS[..]).unwrap();
-            // with leftmost vowel of b
-            let b_start = b.find(&VOWELS[..]).unwrap();
-            Some(format!("{}{}", &a[..a_end], &b[b_start..]))
+            // Get rightmost vowel of a with leftmost vowel of b
+            Some(format!(
+                "{}{}",
+                &a[..a_vowel_indexes.last().unwrap().0],
+                &b[b_vowel_indexes.first().unwrap().0..]
+            ))
         })
         // Step 6: Make sure we aren't outputting either input word
         .and_then(|pm| {
