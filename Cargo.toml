@@ -9,6 +9,7 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 homepage = "https://codeberg.org/alpha-tango-kilo/portmanteau-rs"
 repository = "https://codeberg.org/alpha-tango-kilo/portmanteau-rs"
+documentation = "https://docs.rs/portmanteau/"
 
 [dependencies]
 smallvec = "1.6"
