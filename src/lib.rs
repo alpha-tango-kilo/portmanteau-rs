@@ -219,4 +219,15 @@ mod unit_tests {
     fn by_trios_panic_too_short() {
         portmanteau_by_trios("smol", "word");
     }
+
+    #[test]
+    fn validation() {
+        assert!(validate("hello"));
+        assert!(!validate("Hello"));
+        assert!(!validate("smol"));
+        assert!(!validate("symbols!"));
+        assert!(!validate("s p a c e s"));
+        assert!(!validate("😃😂😉🤩🙄"));
+        assert!(!validate("accénts"))
+    }
 }
