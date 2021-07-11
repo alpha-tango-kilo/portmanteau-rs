@@ -75,7 +75,8 @@ fn validate(s: &str) -> bool {
 
 /// This function creates a portmanteau of the two given words if possible
 ///
-/// Both inputs given should be lowercase single words, without punctuation, and 5 or more letters in length
+/// Both inputs given should be lowercase single words, without punctuation, and 5 or more letters in length.
+/// Doing so would result in receiving `None`
 ///
 /// # Examples
 ///
@@ -96,45 +97,53 @@ fn validate(s: &str) -> bool {
 /// ```
 ///
 pub fn portmanteau(a: &str, b: &str) -> Option<String> {
+    // Step 1: validate input strings to be acceptable
     if !(validate(a) && validate(b)) {
         return None;
     }
 
-    let by_trios = portmanteau_by_trios(a, b);
-    if by_trios.is_some() {
-        return by_trios;
-    }
+    // Step 2: Try and get a portmanteau by trios
+    let output = portmanteau_by_trios(a, b);
 
-    if !has_vowel(a) || !has_vowel(b) {
+    // Step 3: Check for presence of vowels
+    if output.is_none() && !(has_vowel(a) && has_vowel(b)) {
         return None;
     }
 
-    // Find locations of common vowels, but not those that are too close to the start or end
-    let mut vowel_index_pair = None;
-    for c in ['a', 'e', 'i', 'o', 'u'] {
-        if let Some(a_index) = a[..a.len() - VOWEL_SEARCH_MARGIN].rfind(c) {
-            if let Some(b_index) = b[VOWEL_SEARCH_MARGIN..].find(c) {
-                vowel_index_pair = Some((a_index, b_index + VOWEL_SEARCH_MARGIN));
-                //println!("Found matching vowel pair");
-                break;
+    // Step 4: Match common vowels
+    output
+        .or_else(|| {
+            // Find locations of common vowels, but not those that are too close to the start or end
+            for c in VOWELS {
+                if let Some(a_index) = a[..a.len() - VOWEL_SEARCH_MARGIN].rfind(c) {
+                    if let Some(b_index) = b[VOWEL_SEARCH_MARGIN..].find(c) {
+                        //println!("Found matching vowel pair");
+                        return Some(format!(
+                            "{}{}",
+                            &a[..a_index],
+                            &b[b_index + VOWEL_SEARCH_MARGIN..]
+                        ));
+                    }
+                }
             }
-        }
-    }
-
-    // If we didn't get any common vowels, we'll just go for any vowels really
-    if vowel_index_pair.is_none() {
-        //println!("Using any random vowels");
-        vowel_index_pair = Some((
+            None
+        })
+        // Step 5: Match any two vowels
+        .or_else(|| {
             // Get rightmost vowel of a
-            a.rfind(&VOWELS[..]).unwrap(),
+            let a_end = a.rfind(&VOWELS[..]).unwrap();
             // with leftmost vowel of b
-            b.find(&VOWELS[..]).unwrap(),
-        ));
-    }
-
-    let (a_end, b_start) = vowel_index_pair.unwrap();
-
-    Some(format!("{}{}", &a[..a_end], &b[b_start..]))
+            let b_start = b.find(&VOWELS[..]).unwrap();
+            Some(format!("{}{}", &a[..a_end], &b[b_start..]))
+        })
+        // Step 6: Make sure we aren't outputting either input word
+        .and_then(|pm| {
+            if !pm.eq(a) && !pm.eq(b) {
+                Some(pm)
+            } else {
+                None
+            }
+        })
 }
 
 #[cfg(test)]
@@ -193,6 +202,19 @@ mod internal_tests {
     }
 
     #[test]
+    fn by_trios_no_vowels() {
+        assert_eq!(
+            portmanteau_by_trios("sdfghjk", "qwrdfgvbnm"),
+            Some("sdfgvbnm".to_string())
+        );
+        assert_eq!(
+            portmanteau("sdfghjk", "qwrdfgvbnm"),
+            Some("sdfgvbnm".to_string()),
+            "The portmanteau function is rejecting due to lack of vowels too early!"
+        );
+    }
+
+    #[test]
     #[should_panic]
     fn by_trios_panic_too_short() {
         portmanteau_by_trios("smol", "word");
@@ -238,5 +260,10 @@ mod internal_tests {
             portmanteau("pervert", "window"),
             Some("pervindow".to_string())
         );
+    }
+
+    #[test]
+    fn output_matches_input() {
+        assert_eq!(portmanteau("swords", "words"), None);
     }
 }
