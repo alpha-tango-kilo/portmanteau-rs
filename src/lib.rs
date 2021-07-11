@@ -56,7 +56,6 @@ fn portmanteau_by_trios(a: &str, b: &str) -> Option<String> {
 
     // Find indexes of matching trios
     // Could optimise by looking at number of shared letters and skipping more entries in the trio if no letters are shared
-    // Could try aho-corasick
     for (a_pos, a_trio) in a_trios.iter().enumerate() {
         for (b_pos, b_trio) in b_trios.iter().enumerate() {
             if a_trio == b_trio {
