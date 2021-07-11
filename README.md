@@ -18,11 +18,11 @@ It is not my (or any contributer's) job to determine what is or isn't offensive
 
 ## Roadmap
 
-[ ] Optimise/Enhance
-[ ] Better quality control
-[ ] More thorough testing
-[ ] Builder pattern for more configurable generation
-[ ] CLI tool???
+* Optimise/Enhance
+* Better quality control
+* More thorough testing
+* Builder pattern for more configurable generation
+* CLI tool???
 
 ## Licensing
 
