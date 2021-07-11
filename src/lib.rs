@@ -68,6 +68,11 @@ fn portmanteau_by_trios(a: &str, b: &str) -> Option<String> {
     None
 }
 
+#[inline]
+fn validate(s: &str) -> bool {
+    s.len() >= MIN_WORD_SIZE && s.chars().all(|c| c.is_ascii_lowercase())
+}
+
 /// This function creates a portmanteau of the two given words if possible
 ///
 /// Both inputs given should be lowercase single words, without punctuation, and 5 or more letters in length
@@ -91,8 +96,7 @@ fn portmanteau_by_trios(a: &str, b: &str) -> Option<String> {
 /// ```
 ///
 pub fn portmanteau(a: &str, b: &str) -> Option<String> {
-    // TODO: check for capital letters and punctuation
-    if a.len() < MIN_WORD_SIZE || b.len() < MIN_WORD_SIZE {
+    if !(validate(a) && validate(b)) {
         return None;
     }
 
