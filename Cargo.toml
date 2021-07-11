@@ -12,6 +12,7 @@ repository = "https://codeberg.org/alpha-tango-kilo/portmanteau-rs"
 documentation = "https://docs.rs/portmanteau/"
 
 [dependencies]
+aho-corasick = "0.7"
 smallvec = "1.6"
 
 [dev-dependencies]

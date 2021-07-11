@@ -12,6 +12,7 @@
 //! There are no checks for bad language in place, and there are no plans to add any.
 //! It is not my (or any contributer's) job to determine what is or isn't offensive
 
+use aho_corasick::AhoCorasick;
 use smallvec::SmallVec;
 
 const MIN_WORD_SIZE: usize = 5;
@@ -50,22 +51,13 @@ fn portmanteau_by_trios(a: &str, b: &str) -> Option<String> {
         MIN_WORD_SIZE
     );
 
+    // Instead of always using a, choose smaller of two strings?
     let a_trios = &trios_of(a)[1..];
-    let b_trios = &trios_of(b);
-    let b_trios = &b_trios[..b_trios.len() - 2];
-
-    // Find indexes of matching trios
-    // Could optimise by looking at number of shared letters and skipping more entries in the trio if no letters are shared
-    // Could try aho-corasick
-    for (a_pos, a_trio) in a_trios.iter().enumerate() {
-        for (b_pos, b_trio) in b_trios.iter().enumerate() {
-            if a_trio == b_trio {
-                //println!("Found matching trios");
-                return Some(format!("{}{}", &a[..a_pos + 1], &b[b_pos..]));
-            }
-        }
-    }
-    None
+    let ac = AhoCorasick::new(a_trios);
+    ac.earliest_find(&b[..b.len() - 2])
+        .and_then(|m| {
+            Some(format!("{}{}", &a[..m.pattern() + 1], &b[m.start()..]))
+        })
 }
 
 #[inline]
