@@ -16,10 +16,23 @@ Please do not hold myself (or any contributer to this repository) accountable fo
 There are no checks for bad language in place, and there are no plans to add any.
 It is not my (or any contributer's) job to determine what is or isn't offensive
 
+## Explanation
+
+At a high level, this is how the algorithm works:
+
+1. Check the inputs are good
+2. See if there are any shared 3 letter combinations (trios)*. Join here if so
+3. See if there are any shared vowels*. Join here if so
+4. Join the rightmost vowel of the first word to the leftmost vowel of the second word
+
+*: The start of the first word and the end of the last word is cut off for these operations to avoid low quality output
+
 ## Roadmap
 
 * Optimise/Enhance
-* Better quality control
+* ~~Better quality control~~ (complete in v0.2.0)
+* Benchmark (added in v0.2.0)
+  * Benchmarks per code path (trio matching, vowel matching, random vowels)
 * More thorough testing
 * Builder pattern for more configurable generation
 * CLI tool???
