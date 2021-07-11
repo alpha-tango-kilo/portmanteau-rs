@@ -12,7 +12,6 @@
 //! There are no checks for bad language in place, and there are no plans to add any.
 //! It is not my (or any contributer's) job to determine what is or isn't offensive
 
-use itertools::Itertools;
 use smallvec::SmallVec;
 
 const MIN_WORD_SIZE: usize = 5;
@@ -58,12 +57,15 @@ fn portmanteau_by_trios(a: &str, b: &str) -> Option<String> {
     // Find indexes of matching trios
     // Could optimise by looking at number of shared letters and skipping more entries in the trio if no letters are shared
     // Could try aho-corasick
-    a_trios
-        .into_iter()
-        .enumerate()
-        .cartesian_product(b_trios.into_iter().enumerate())
-        .find(|((_, a_trio), (_, b_trio))| a_trio == b_trio)
-        .and_then(|((a_pos, _), (b_pos, _))| Some(format!("{}{}", &a[..a_pos + 1], &b[b_pos..])))
+    for (a_pos, a_trio) in a_trios.iter().enumerate() {
+        for (b_pos, b_trio) in b_trios.iter().enumerate() {
+            if a_trio == b_trio {
+                //println!("Found matching trios");
+                return Some(format!("{}{}", &a[..a_pos + 1], &b[b_pos..]));
+            }
+        }
+    }
+    None
 }
 
 /// This function creates a portmanteau of the two given words if possible
@@ -89,6 +91,7 @@ fn portmanteau_by_trios(a: &str, b: &str) -> Option<String> {
 /// ```
 ///
 pub fn portmanteau(a: &str, b: &str) -> Option<String> {
+    // TODO: check for capital letters and punctuation
     if a.len() < MIN_WORD_SIZE || b.len() < MIN_WORD_SIZE {
         return None;
     }
