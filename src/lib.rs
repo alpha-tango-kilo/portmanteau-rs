@@ -73,6 +73,31 @@ fn validate(s: &str) -> bool {
     s.len() >= MIN_WORD_SIZE && s.chars().all(|c| c.is_ascii_lowercase())
 }
 
+fn portmanteau_by_common_vowels(a: &str, b: &str) -> Option<String> {
+    // Find locations of common vowels, but not those that are too close to the start or end
+    for c in VOWELS {
+        if let Some(a_index) = a[..a.len() - VOWEL_SEARCH_MARGIN].rfind(c) {
+            if let Some(b_index) = b[VOWEL_SEARCH_MARGIN..].find(c) {
+                //println!("Found matching vowel pair");
+                return Some(format!(
+                    "{}{}",
+                    &a[..a_index],
+                    &b[b_index + VOWEL_SEARCH_MARGIN..]
+                ));
+            }
+        }
+    }
+    None
+}
+
+fn portmanteau_by_any_vowels(a: &str, b: &str) -> Option<String> {
+    // Get rightmost vowel of a
+    let a_end = a.rfind(&VOWELS[..]).unwrap();
+    // with leftmost vowel of b
+    let b_start = b.find(&VOWELS[..]).unwrap();
+    Some(format!("{}{}", &a[..a_end], &b[b_start..]))
+}
+
 /// This function creates a portmanteau of the two given words if possible
 ///
 /// Both inputs given should be lowercase single words, without punctuation, and 5 or more letters in length.
@@ -95,7 +120,7 @@ fn validate(s: &str) -> bool {
 ///     None
 ///     );
 /// ```
-///
+
 pub fn portmanteau(a: &str, b: &str) -> Option<String> {
     // Step 1: validate input strings to be acceptable
     if !(validate(a) && validate(b)) {
@@ -112,30 +137,9 @@ pub fn portmanteau(a: &str, b: &str) -> Option<String> {
 
     // Step 4: Match common vowels
     output
-        .or_else(|| {
-            // Find locations of common vowels, but not those that are too close to the start or end
-            for c in VOWELS {
-                if let Some(a_index) = a[..a.len() - VOWEL_SEARCH_MARGIN].rfind(c) {
-                    if let Some(b_index) = b[VOWEL_SEARCH_MARGIN..].find(c) {
-                        //println!("Found matching vowel pair");
-                        return Some(format!(
-                            "{}{}",
-                            &a[..a_index],
-                            &b[b_index + VOWEL_SEARCH_MARGIN..]
-                        ));
-                    }
-                }
-            }
-            None
-        })
+        .or_else(|| portmanteau_by_common_vowels(a, b))
         // Step 5: Match any two vowels
-        .or_else(|| {
-            // Get rightmost vowel of a
-            let a_end = a.rfind(&VOWELS[..]).unwrap();
-            // with leftmost vowel of b
-            let b_start = b.find(&VOWELS[..]).unwrap();
-            Some(format!("{}{}", &a[..a_end], &b[b_start..]))
-        })
+        .or_else(|| portmanteau_by_any_vowels(a, b))
         // Step 6: Make sure we aren't outputting either input word
         .and_then(|pm| {
             if !pm.eq(a) && !pm.eq(b) {
