@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput, SamplingMode};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use portmanteau::portmanteau;
 use std::error::Error;
 
