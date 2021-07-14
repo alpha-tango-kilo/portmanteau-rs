@@ -17,7 +17,7 @@ use smallvec::SmallVec;
 
 const MIN_WORD_SIZE: usize = 5;
 const EXPECTED_TRIOS: usize = 3;
-const VOWEL_SEARCH_MARGIN: usize = 1;
+const MATCHING_VOWEL_SEARCH_MARGIN: usize = 1;
 const VOWELS: [char; 5] = ['a', 'e', 'i', 'o', 'u'];
 
 // Expects to always take lowercase `s`
@@ -76,13 +76,13 @@ fn validate(s: &str) -> bool {
 fn portmanteau_by_common_vowels(a: &str, b: &str) -> Option<String> {
     // Find locations of common vowels, but not those that are too close to the start or end
     for c in VOWELS {
-        if let Some(a_index) = a[..a.len() - VOWEL_SEARCH_MARGIN].rfind(c) {
-            if let Some(b_index) = b[VOWEL_SEARCH_MARGIN..].find(c) {
+        if let Some(a_index) = a[..a.len() - MATCHING_VOWEL_SEARCH_MARGIN].rfind(c) {
+            if let Some(b_index) = b[MATCHING_VOWEL_SEARCH_MARGIN..].find(c) {
                 //println!("Found matching vowel pair");
                 return Some(format!(
                     "{}{}",
                     &a[..a_index],
-                    &b[b_index + VOWEL_SEARCH_MARGIN..]
+                    &b[b_index + MATCHING_VOWEL_SEARCH_MARGIN..]
                 ));
             }
         }
