@@ -11,6 +11,11 @@ homepage = "https://codeberg.org/alpha-tango-kilo/portmanteau-rs"
 repository = "https://codeberg.org/alpha-tango-kilo/portmanteau-rs"
 documentation = "https://docs.rs/portmanteau/"
 
+[workspace]
+members = [
+	"portmanteau-bin"
+]
+
 [dependencies]
 smallvec = "1.6"
 

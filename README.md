@@ -30,12 +30,13 @@ At a high level, this is how the algorithm works:
 ## Roadmap
 
 * Optimise/Enhance
+  * See other branches for attempted optimisations where they have benchmarked more poorly (hall of shame, if you will)
 * ~~Better quality control~~ (complete in v0.2.0)
 * Benchmark (added in v0.2.0)
   * Benchmarks per code path (trio matching, vowel matching, random vowels)
 * More thorough testing
 * Builder pattern for more configurable generation
-* CLI tool???
+* CLI tool (in progess)
 
 ## Licensing
 
