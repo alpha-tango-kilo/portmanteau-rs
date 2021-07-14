@@ -1,5 +1,9 @@
 # Portmanteau
 
+[![Crates.io](https://img.shields.io/crates/v/portmanteau.svg)](https://crates.io/crates/portmanteau)
+[![Documentation](https://docs.rs/portmanteau/badge.svg)](https://docs.rs/portmanteau)
+![](https://img.shields.io/badge/unsafe-forbidden-darkgreen.svg)
+
 A portmanteau is a made up word derived as a combination of two other words, e.g. "liquid" + "slinky" = "liquinky"
 
 It isn't always possible to produce a portmanteau from the input words (there are some quality checks in place), so the exposed `portmanteau` function returns an `Option<String>`
