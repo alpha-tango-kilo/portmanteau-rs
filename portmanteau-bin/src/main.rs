@@ -1,4 +1,3 @@
-use anyhow::{bail, Result};
 use portmanteau::portmanteau;
 use std::io::BufRead;
 use std::{io, process};
@@ -42,16 +41,22 @@ fn main() -> Result<(), pico_args::Error> {
         let status = io::stdin()
             .lock()
             .lines()
-            .map(|s| -> Result<()> {
+            .map(|s| {
                 let s = s?;
                 let mut words = s.split(' ');
                 let a = match words.next() {
                     Some(s) => s,
-                    None => bail!("Word not found in line"),
+                    None => {
+                        eprintln!("Words not found in line");
+                        return Ok(());
+                    },
                 };
                 let b = match words.next() {
                     Some(s) => s,
-                    None => bail!("Word not found in line"),
+                    None => {
+                        eprintln!("Second word not found in line");
+                        return Ok(());
+                    },
                 };
 
                 if words.next().is_some() {
@@ -63,9 +68,9 @@ fn main() -> Result<(), pico_args::Error> {
                 }
                 Ok(())
             })
-            .collect::<Result<()>>();
+            .collect::<io::Result<()>>();
         if let Err(why) = status {
-            eprintln!("{}", why);
+            eprintln!("STDIN read ended with error ({})", why);
             process::exit(2);
         }
     } else {
