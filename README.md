@@ -27,6 +27,18 @@ At a high level, this is how the algorithm works:
 
 *: The start of the first word and the end of the last word is cut off for these operations to avoid low quality output
 
+## Installation
+
+To install and use `portmanteau` as a binary application on your system, you can simply run:
+
+```shell
+cargo install portmanteau
+```
+
+You will need the `--force` flag if you are updating
+
+For usage instructions, please refer to `portmanteau --help`
+
 ## Roadmap
 
 * Optimise/Enhance
@@ -36,7 +48,7 @@ At a high level, this is how the algorithm works:
   * Benchmarks per code path (trio matching, vowel matching, random vowels)
 * More thorough testing
 * Builder pattern for more configurable generation
-* CLI tool (in progess)
+* ~~CLI tool~~ (available in workspace `portmanteau-bin`)
 
 ## Licensing
 
