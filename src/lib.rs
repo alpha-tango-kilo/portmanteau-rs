@@ -1,4 +1,5 @@
 #![deny(missing_docs)]
+#![forbid(unsafe_code)]
 
 //! A portmanteau is a made up word derived as a combination of two other words, e.g. "liquid" + "slinky" = "liquinky"
 //!

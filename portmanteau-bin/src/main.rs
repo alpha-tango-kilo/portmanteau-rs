@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use portmanteau::portmanteau;
 use std::io::BufRead;
 use std::{io, process};
@@ -7,7 +9,7 @@ portmanteau
 
 USAGE:
   portmanteau [OPTIONS] [WORD 1] [WORD 2]           Words to combine given as arguments
-  portmanteau [OPTIONS] -                           Words to combine taken from STDIN
+  portmanteau [OPTIONS] -                           Words to combine taken from STDIN line-by-line
 
 OPTIONS:
   -h, --help                                        Access this help text
