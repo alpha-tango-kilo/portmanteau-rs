@@ -12,6 +12,7 @@ repository = "https://codeberg.org/alpha-tango-kilo/portmanteau-rs"
 
 [dependencies]
 portmanteau = { path = ".." }
+anyhow = "1.0"
 
 [dependencies.pico-args]
 version = "0.4"

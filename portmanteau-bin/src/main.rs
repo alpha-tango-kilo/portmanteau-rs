@@ -1,5 +1,7 @@
-use std::process;
+use anyhow::{bail, Result};
 use portmanteau::portmanteau;
+use std::io::BufRead;
+use std::{io, process};
 
 const HELP: &str = "\
 portmanteau
@@ -18,12 +20,17 @@ EXIT CODES:
   2                                                 Unexpected error
 ";
 
+#[inline]
+fn print_help() {
+    println!("{}", HELP);
+    process::exit(0);
+}
+
 fn main() -> Result<(), pico_args::Error> {
     let mut pargs = pico_args::Arguments::from_env();
 
     if pargs.contains(["-h", "--help"]) {
-        println!("{}", HELP);
-        process::exit(0);
+        print_help();
     } else if pargs.contains(["-v", "--version"]) {
         println!("v{}", env!("CARGO_PKG_VERSION"));
         process::exit(0);
@@ -31,9 +38,39 @@ fn main() -> Result<(), pico_args::Error> {
 
     if pargs.contains("-") {
         // STDIN mode
-        eprintln!("STDIN mode");
+        //eprintln!("STDIN mode");
+        let status = io::stdin()
+            .lock()
+            .lines()
+            .map(|s| -> Result<()> {
+                let s = s?;
+                let mut words = s.split(' ');
+                let a = match words.next() {
+                    Some(s) => s,
+                    None => bail!("Word not found in line"),
+                };
+                let b = match words.next() {
+                    Some(s) => s,
+                    None => bail!("Word not found in line"),
+                };
+
+                if words.next().is_some() {
+                    eprintln!("More words than expected on line");
+                }
+
+                if let Some(pm) = portmanteau(a, b) {
+                    println!("{}", pm);
+                }
+                Ok(())
+            })
+            .collect::<Result<()>>();
+        if let Err(why) = status {
+            eprintln!("{}", why);
+            process::exit(2);
+        }
     } else {
         // Args mode
+        //eprintln!("Args mode");
         let a_option = pargs.subcommand()?;
         let b_option = pargs.subcommand()?;
         let extras = pargs.finish();
@@ -43,17 +80,21 @@ fn main() -> Result<(), pico_args::Error> {
         }
 
         match (a_option, b_option) {
-            (Some(a), Some(b)) => {
-                match portmanteau(&a, &b) {
-                    Some(pm) => println!("{}", pm),
-                    None => process::exit(1),
-                }
+            (Some(a), Some(b)) => match portmanteau(&a, &b) {
+                Some(pm) => println!("{}", pm),
+                None => process::exit(1),
+            },
+            (None, _) => {
+                // No arguments given, default to help
+                print_help();
             },
             _ => {
-                eprintln!("Failed to process arguments - expected to be given two words to combine\
-            Use `portmanteau --help` for help");
+                eprintln!(
+                    "Failed to process arguments - expected to be given two words to combine\n\
+            Use `portmanteau --help` for help"
+                );
                 process::exit(2);
-            },
+            }
         }
     }
 
