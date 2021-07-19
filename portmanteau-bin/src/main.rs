@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 
 use portmanteau::portmanteau;
+use portmanteau_bin::BinError::*;
+use portmanteau_bin::*;
 use std::io::BufRead;
 use std::{io, process};
 
@@ -12,13 +14,15 @@ USAGE:
   portmanteau [OPTIONS] -                           Words to combine taken from STDIN line-by-line
 
 OPTIONS:
+  -s [delimiter], --split [delimiter]               Specify the character(s) between the two words being input
   -h, --help                                        Access this help text
   -v, --version                                     Print the program version
 
 EXIT CODES:
   0                                                 All good
   1                                                 No portmanteau produced (in arguments mode)
-  2                                                 Unexpected error
+  2                                                 User error
+  3                                                 Program error
 ";
 
 #[inline]
@@ -27,7 +31,16 @@ fn print_help() {
     process::exit(0);
 }
 
-fn main() -> Result<(), pico_args::Error> {
+type Result<T> = std::result::Result<T, BinError>;
+
+fn main() {
+    if let Err(what) = app() {
+        eprintln!("{}", what);
+        process::exit(what.get_exit_code())
+    }
+}
+
+fn app() -> Result<()> {
     let mut pargs = pico_args::Arguments::from_env();
 
     if pargs.contains(["-h", "--help"]) {
@@ -37,73 +50,77 @@ fn main() -> Result<(), pico_args::Error> {
         process::exit(0);
     }
 
+    let config = RuntimeConfig::from_pico_args(&mut pargs);
+
     if pargs.contains("-") {
         // STDIN mode
         //eprintln!("STDIN mode");
-        let status = io::stdin()
-            .lock()
-            .lines()
-            .map(|s| {
-                let s = s?;
-                let mut words = s.split(' ');
-                let a = match words.next() {
-                    Some(s) => s,
-                    None => {
-                        eprintln!("Words not found in line");
-                        return Ok(());
-                    },
-                };
-                let b = match words.next() {
-                    Some(s) => s,
-                    None => {
-                        eprintln!("Second word not found in line");
-                        return Ok(());
-                    },
-                };
-
-                if words.next().is_some() {
-                    eprintln!("More words than expected on line");
-                }
-
-                if let Some(pm) = portmanteau(a, b) {
-                    println!("{}", pm);
-                }
-                Ok(())
-            })
-            .collect::<io::Result<()>>();
-        if let Err(why) = status {
-            eprintln!("STDIN read ended with error ({})", why);
-            process::exit(2);
-        }
+        io::stdin().lock().lines().for_each(|line| {
+            // STDIN mode handles errors line-by-line and just prints them without aborting
+            if let Err(warning) = stdin_line(&config, line) {
+                eprintln!("{}", warning);
+            }
+        });
     } else {
         // Args mode
         //eprintln!("Args mode");
-        let a_option = pargs.subcommand()?;
-        let b_option = pargs.subcommand()?;
-        let extras = pargs.finish();
+        args_mode(&config, pargs)?;
+    }
+    Ok(())
+}
 
-        if !extras.is_empty() {
-            eprintln!("WARNING: extra arguments provided ({:?})", extras);
-        }
+fn stdin_line(config: &RuntimeConfig, line: io::Result<String>) -> Result<()> {
+    let line = line?;
+    let mut words = line.split(&config.split_on);
+    let a = words.next().ok_or(InsufficientArguments(None))?;
+    let b = words.next().ok_or(InsufficientArguments(None))?;
 
-        match (a_option, b_option) {
-            (Some(a), Some(b)) => match portmanteau(&a, &b) {
-                Some(pm) => println!("{}", pm),
-                None => process::exit(1),
-            },
-            (None, _) => {
-                // No arguments given, default to help
-                print_help();
-            },
-            _ => {
-                eprintln!(
-                    "Failed to process arguments - expected to be given two words to combine\n\
-            Use `portmanteau --help` for help"
-                );
-                process::exit(2);
-            }
-        }
+    if words.next().is_some() {
+        eprintln!("More words than expected on line");
     }
 
+    if let Some(pm) = portmanteau(a, b) {
+        println!("{}", pm);
+    }
+    Ok(())
+}
+
+fn args_mode(config: &RuntimeConfig, pargs: pico_args::Arguments) -> Result<()> {
+    let remaining_args = pargs.finish();
+
+    if config.is_split_whitespace() {
+        // Expect two args
+        if remaining_args.len() > 2 {
+            eprintln!("More words than expected on line");
+        }
+        let a = &remaining_args
+            .get(0)
+            .ok_or(InsufficientArguments(Some(2)))?
+            .to_string_lossy();
+        let b = &remaining_args
+            .get(1)
+            .ok_or(InsufficientArguments(Some(2)))?
+            .to_string_lossy();
+        match portmanteau(a, b) {
+            Some(pm) => println!("{}", pm),
+            None => return Err(NoneProduced((a.to_string(), b.to_string()))),
+        }
+    } else {
+        // Expect one arg
+        if remaining_args.len() > 1 {
+            eprintln!("More words than expected on line");
+        }
+        let s = remaining_args
+            .get(0)
+            .ok_or(InsufficientArguments(Some(1)))?
+            .to_string_lossy();
+        let mut s_iter = s.split(&config.split_on);
+        let a = s_iter.next().ok_or(BadSplit(config.split_on.clone()))?;
+        let b = s_iter.next().ok_or(BadSplit(config.split_on.clone()))?;
+        match portmanteau(a, b) {
+            Some(pm) => println!("{}", pm),
+            None => return Err(NoneProduced((a.into(), b.into()))),
+        }
+    }
     Ok(())
 }
