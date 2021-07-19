@@ -3,27 +3,29 @@ use std::{fmt, io};
 
 #[derive(Debug)]
 pub struct RuntimeConfig {
-    pub split_on: String,
+    pub word_split: String,
 }
 
 impl RuntimeConfig {
     pub fn from_pico_args(pargs: &mut pico_args::Arguments) -> Self {
-        let split_on = pargs
-            .value_from_str(["-s", "--split"])
-            .unwrap_or(RuntimeConfig::default().split_on);
-        RuntimeConfig { split_on }
+        let word_split = pargs
+            .value_from_str(["-w", "--word-split"])
+            .unwrap_or(RuntimeConfig::default().word_split);
+        RuntimeConfig {
+            word_split,
+        }
     }
 
     #[inline]
     pub fn is_split_whitespace(&self) -> bool {
-        self.split_on.trim().is_empty()
+        self.word_split.trim().is_empty()
     }
 }
 
 impl Default for RuntimeConfig {
     fn default() -> Self {
         RuntimeConfig {
-            split_on: String::from(' '),
+            word_split: String::from(' '),
         }
     }
 }
@@ -96,48 +98,48 @@ mod unit_tests {
     fn default() {
         let mut pargs = Arguments::from_vec(to_pico_vec(&[]));
         let config = RuntimeConfig::from_pico_args(&mut pargs);
-        assert_eq!(config.split_on, RuntimeConfig::default().split_on);
+        assert_eq!(config.word_split, RuntimeConfig::default().word_split);
     }
 
     #[test]
     fn short_split() {
-        let mut pargs = Arguments::from_vec(to_pico_vec(&["-s", "."]));
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["-w", "."]));
         let config = RuntimeConfig::from_pico_args(&mut pargs);
-        assert_eq!(&config.split_on, ".");
+        assert_eq!(&config.word_split, ".");
     }
 
     #[test]
     fn long_split() {
-        let mut pargs = Arguments::from_vec(to_pico_vec(&["--split", "."]));
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["--word-split", "."]));
         let config = RuntimeConfig::from_pico_args(&mut pargs);
-        assert_eq!(&config.split_on, ".");
+        assert_eq!(&config.word_split, ".");
     }
 
     #[test]
     fn string_split() {
-        let mut pargs = Arguments::from_vec(to_pico_vec(&["--split", ".-."]));
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["--word-split", ".-."]));
         let config = RuntimeConfig::from_pico_args(&mut pargs);
-        assert_eq!(&config.split_on, ".-.");
+        assert_eq!(&config.word_split, ".-.");
     }
 
     #[test]
     fn multiple_splits() {
         // Short option is checked first
-        let mut pargs = Arguments::from_vec(to_pico_vec(&["--split", ".", "-s", ","]));
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["--word-split", ".", "-w", ","]));
         let config = RuntimeConfig::from_pico_args(&mut pargs);
-        assert_eq!(&config.split_on, ",");
+        assert_eq!(&config.word_split, ",");
 
-        let mut pargs = Arguments::from_vec(to_pico_vec(&["-s", ".", "--split", ","]));
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["-w", ".", "--word-split", ","]));
         let config = RuntimeConfig::from_pico_args(&mut pargs);
-        assert_eq!(&config.split_on, ".");
+        assert_eq!(&config.word_split, ".");
 
         // First choice is taken when multiple identical flags are given
-        let mut pargs = Arguments::from_vec(to_pico_vec(&["-s", ".", "-s", ","]));
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["-w", ".", "-w", ","]));
         let config = RuntimeConfig::from_pico_args(&mut pargs);
-        assert_eq!(&config.split_on, ".");
+        assert_eq!(&config.word_split, ".");
 
-        let mut pargs = Arguments::from_vec(to_pico_vec(&["--split", ".", "--split", ","]));
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["--word-split", ".", "--word-split", ","]));
         let config = RuntimeConfig::from_pico_args(&mut pargs);
-        assert_eq!(&config.split_on, ".");
+        assert_eq!(&config.word_split, ".");
     }
 }

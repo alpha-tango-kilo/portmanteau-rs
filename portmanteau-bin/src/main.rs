@@ -14,7 +14,7 @@ USAGE:
   portmanteau [OPTIONS] -                           Words to combine taken from STDIN line-by-line
 
 OPTIONS:
-  -s [delimiter], --split [delimiter]               Specify the character(s) between the two words being input
+  -w [delimiter], --word-split [delimiter]          Specify the character(s) between the two words being input
   -h, --help                                        Access this help text
   -v, --version                                     Print the program version
 
@@ -71,7 +71,7 @@ fn app() -> Result<()> {
 
 fn stdin_line(config: &RuntimeConfig, line: io::Result<String>) -> Result<()> {
     let line = line?;
-    let mut words = line.split(&config.split_on);
+    let mut words = line.split(&config.word_split);
     let a = words.next().ok_or(InsufficientArguments(None))?;
     let b = words.next().ok_or(InsufficientArguments(None))?;
 
@@ -114,9 +114,9 @@ fn args_mode(config: &RuntimeConfig, pargs: pico_args::Arguments) -> Result<()> 
             .get(0)
             .ok_or(InsufficientArguments(Some(1)))?
             .to_string_lossy();
-        let mut s_iter = s.split(&config.split_on);
-        let a = s_iter.next().ok_or(BadSplit(config.split_on.clone()))?;
-        let b = s_iter.next().ok_or(BadSplit(config.split_on.clone()))?;
+        let mut s_iter = s.split(&config.word_split);
+        let a = s_iter.next().ok_or(BadSplit(config.word_split.clone()))?;
+        let b = s_iter.next().ok_or(BadSplit(config.word_split.clone()))?;
         match portmanteau(a, b) {
             Some(pm) => println!("{}", pm),
             None => return Err(NoneProduced((a.into(), b.into()))),

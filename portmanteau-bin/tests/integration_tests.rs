@@ -33,21 +33,21 @@ fn help() {
 }
 
 #[test]
-fn splits() {
+fn word_splits() {
     get_bin()
-        .args(&["-s", ".", "liquid.slinky"])
+        .args(&["-w", ".", "liquid.slinky"])
         .assert()
         .stdout("liquinky\n")
         .stderr("")
         .success();
     get_bin()
-        .args(&["-s", ".-.", "liquid.-.slinky"])
+        .args(&["-w", ".-.", "liquid.-.slinky"])
         .assert()
         .stdout("liquinky\n")
         .stderr("")
         .success();
     get_bin()
-        .args(&["-s", ",", "-"])
+        .args(&["-w", ",", "-"])
         .write_stdin("liquid,slinky")
         .assert()
         .stdout("liquinky\n")
@@ -98,7 +98,7 @@ mod args_mode_errors {
             .stderr("Insufficient arguments provided, expected 2\n")
             .code(2);
         get_bin()
-            .args(&["-s", "."])
+            .args(&["-w", "."])
             .assert()
             .stderr("Insufficient arguments provided, expected 1\n")
             .code(2);
@@ -107,7 +107,7 @@ mod args_mode_errors {
     #[test]
     fn bad_split() {
         get_bin()
-            .args(&["-s", ",", "liquidslinky"])
+            .args(&["-w", ",", "liquidslinky"])
             .assert()
             .stderr("Split \",\" failed to produce at least two parts\n")
             .code(2);
@@ -121,7 +121,7 @@ mod args_mode_errors {
             .stderr("\"wet\" and \"dog\" did not produce a portmanteau\n")
             .code(1);
         get_bin()
-            .args(&["-s", ".", "wet.dog"])
+            .args(&["-w", ".", "wet.dog"])
             .assert()
             .stderr("\"wet\" and \"dog\" did not produce a portmanteau\n")
             .code(1);
