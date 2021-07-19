@@ -22,14 +22,8 @@ fn version() {
 
 #[test]
 fn help() {
-    get_bin()
-        .arg("-h")
-        .assert()
-        .success();
-    get_bin()
-        .arg("--help")
-        .assert()
-        .success();
+    get_bin().arg("-h").assert().success();
+    get_bin().arg("--help").assert().success();
 }
 
 #[test]
@@ -53,6 +47,33 @@ fn word_splits() {
         .stdout("liquinky\n")
         .stderr("")
         .success();
+}
+
+#[test]
+fn line_splits() {
+    get_bin()
+        .args(&["-l", ".", "-"])
+        .write_stdin("liquid slinky.innovative madlad")
+        .assert()
+        .stdout("liquinky\ninnovadlad\n")
+        .stderr("");
+    get_bin()
+        .args(&["-l", "\t", "-"])
+        .write_stdin("liquid slinky\tinnovative madlad")
+        .assert()
+        .stdout("liquinky\ninnovadlad\n")
+        .stderr("");
+}
+
+#[test]
+fn bad_line_split() {
+    get_bin()
+        .args(&["-l", ",\n", "-"])
+        .write_stdin("liquid slinky,\ninnovative madlad")
+        .assert()
+        .stdout("")
+        .stderr("Line delimiter can only be a single character\n")
+        .code(2);
 }
 
 #[test]
@@ -105,7 +126,7 @@ mod args_mode_errors {
     }
 
     #[test]
-    fn bad_split() {
+    fn bad_word_split() {
         get_bin()
             .args(&["-w", ",", "liquidslinky"])
             .assert()

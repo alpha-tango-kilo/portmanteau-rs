@@ -1,19 +1,31 @@
+use pico_args::Error::Utf8ArgumentParsingFailed;
 use std::error::Error;
+use std::str::Utf8Error;
 use std::{fmt, io};
+
+type Result<T> = std::result::Result<T, BinError>;
 
 #[derive(Debug)]
 pub struct RuntimeConfig {
     pub word_split: String,
+    pub line_split: char,
 }
 
 impl RuntimeConfig {
-    pub fn from_pico_args(pargs: &mut pico_args::Arguments) -> Self {
+    pub fn from_pico_args(pargs: &mut pico_args::Arguments) -> Result<Self> {
         let word_split = pargs
             .value_from_str(["-w", "--word-split"])
             .unwrap_or(RuntimeConfig::default().word_split);
-        RuntimeConfig {
+        let line_split = match pargs.value_from_str(["-l", "--line-split"]) {
+            Ok(c) => c,
+            Err(Utf8ArgumentParsingFailed { .. }) => return Err(BinError::BadLineSplit),
+            Err(_) => RuntimeConfig::default().line_split,
+        };
+
+        Ok(RuntimeConfig {
             word_split,
-        }
+            line_split,
+        })
     }
 
     #[inline]
@@ -26,6 +38,7 @@ impl Default for RuntimeConfig {
     fn default() -> Self {
         RuntimeConfig {
             word_split: String::from(' '),
+            line_split: '\n',
         }
     }
 }
@@ -34,9 +47,11 @@ impl Default for RuntimeConfig {
 pub enum BinError {
     InsufficientArguments(Option<usize>), // Expected number isn't always known/applicable, hence the Option
     //ArgumentParsing(pico_args::Error),
-    BadSplit(String), // TODO: use reference?
+    BadWordSplit(String), // TODO: use reference?
+    BadLineSplit,
     StdinEnd(io::Error),
     NoneProduced((String, String)), // TODO: use reference?
+    DecodeStdin(Utf8Error),
 }
 
 impl BinError {
@@ -44,9 +59,11 @@ impl BinError {
         use BinError::*;
         match self {
             InsufficientArguments(_) => 2,
-            BadSplit(_) => 2,
+            BadWordSplit(_) => 2,
+            BadLineSplit => 2,
             StdinEnd(_) => 3,
             NoneProduced(_) => 1,
+            DecodeStdin(_) => 3,
         }
     }
 }
@@ -60,9 +77,15 @@ impl fmt::Display for BinError {
                 None => write!(f, "Couldn't find two words to combine"),
             },
             //ArgumentParsing(pico_err) => write!(f, "Problem parsing arguments ({})", pico_err),
-            BadSplit(split) => write!(f, "Split {:?} failed to produce at least two parts", split),
+            BadWordSplit(split) => {
+                write!(f, "Split {:?} failed to produce at least two parts", split)
+            }
+            BadLineSplit => write!(f, "Line delimiter can only be a single character"),
             StdinEnd(io_err) => write!(f, "STDIN read ended with error ({})", io_err),
             NoneProduced((a, b)) => write!(f, "{:?} and {:?} did not produce a portmanteau", a, b),
+            DecodeStdin(utf_err) => {
+                write!(f, "Failed to read STDIN with given split ({})", utf_err)
+            }
         }
     }
 }
@@ -83,6 +106,12 @@ impl From<io::Error> for BinError {
     }
 }
 
+impl From<std::str::Utf8Error> for BinError {
+    fn from(utf_error: Utf8Error) -> Self {
+        BinError::DecodeStdin(utf_error)
+    }
+}
+
 #[cfg(test)]
 mod unit_tests {
     use crate::RuntimeConfig;
@@ -97,49 +126,65 @@ mod unit_tests {
     #[test]
     fn default() {
         let mut pargs = Arguments::from_vec(to_pico_vec(&[]));
-        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        let config = RuntimeConfig::from_pico_args(&mut pargs).unwrap();
         assert_eq!(config.word_split, RuntimeConfig::default().word_split);
+        assert_eq!(config.line_split, RuntimeConfig::default().line_split)
     }
 
     #[test]
-    fn short_split() {
+    fn short_word_split() {
         let mut pargs = Arguments::from_vec(to_pico_vec(&["-w", "."]));
-        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        let config = RuntimeConfig::from_pico_args(&mut pargs).unwrap();
         assert_eq!(&config.word_split, ".");
     }
 
     #[test]
-    fn long_split() {
+    fn long_word_split() {
         let mut pargs = Arguments::from_vec(to_pico_vec(&["--word-split", "."]));
-        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        let config = RuntimeConfig::from_pico_args(&mut pargs).unwrap();
         assert_eq!(&config.word_split, ".");
     }
 
     #[test]
-    fn string_split() {
+    fn string_word_split() {
         let mut pargs = Arguments::from_vec(to_pico_vec(&["--word-split", ".-."]));
-        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        let config = RuntimeConfig::from_pico_args(&mut pargs).unwrap();
         assert_eq!(&config.word_split, ".-.");
+    }
+
+    #[test]
+    fn short_line_split() {
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["-l", "."]));
+        let config = RuntimeConfig::from_pico_args(&mut pargs).unwrap();
+        assert_eq!(config.line_split, '.');
+    }
+
+    #[test]
+    fn long_line_split() {
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["--line-split", "."]));
+        let config = RuntimeConfig::from_pico_args(&mut pargs).unwrap();
+        assert_eq!(config.line_split, '.');
     }
 
     #[test]
     fn multiple_splits() {
         // Short option is checked first
         let mut pargs = Arguments::from_vec(to_pico_vec(&["--word-split", ".", "-w", ","]));
-        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        let config = RuntimeConfig::from_pico_args(&mut pargs).unwrap();
         assert_eq!(&config.word_split, ",");
 
         let mut pargs = Arguments::from_vec(to_pico_vec(&["-w", ".", "--word-split", ","]));
-        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        let config = RuntimeConfig::from_pico_args(&mut pargs).unwrap();
         assert_eq!(&config.word_split, ".");
 
         // First choice is taken when multiple identical flags are given
         let mut pargs = Arguments::from_vec(to_pico_vec(&["-w", ".", "-w", ","]));
-        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        let config = RuntimeConfig::from_pico_args(&mut pargs).unwrap();
         assert_eq!(&config.word_split, ".");
 
-        let mut pargs = Arguments::from_vec(to_pico_vec(&["--word-split", ".", "--word-split", ","]));
-        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        let mut pargs =
+            Arguments::from_vec(to_pico_vec(&["--word-split", ".", "--word-split", ","]));
+        let config = RuntimeConfig::from_pico_args(&mut pargs).unwrap();
         assert_eq!(&config.word_split, ".");
     }
 }

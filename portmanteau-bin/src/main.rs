@@ -11,10 +11,11 @@ portmanteau
 
 USAGE:
   portmanteau [OPTIONS] [WORD 1] [WORD 2]           Words to combine given as arguments
-  portmanteau [OPTIONS] -                           Words to combine taken from STDIN line-by-line
+  portmanteau [OPTIONS] -                           Words to combine taken from STDIN
 
 OPTIONS:
-  -w [delimiter], --word-split [delimiter]          Specify the character(s) between the two words being input
+  -w [delimiter], --word-split [delimiter]          Specify the string between the two words being input
+  -l [delimiter], --line-split [delimiter]          Specify the character between each pair of words (STDIN mode only)
   -h, --help                                        Access this help text
   -v, --version                                     Print the program version
 
@@ -50,17 +51,20 @@ fn app() -> Result<()> {
         process::exit(0);
     }
 
-    let config = RuntimeConfig::from_pico_args(&mut pargs);
+    let config = RuntimeConfig::from_pico_args(&mut pargs)?;
 
     if pargs.contains("-") {
         // STDIN mode
         //eprintln!("STDIN mode");
-        io::stdin().lock().lines().for_each(|line| {
-            // STDIN mode handles errors line-by-line and just prints them without aborting
-            if let Err(warning) = stdin_line(&config, line) {
-                eprintln!("{}", warning);
-            }
-        });
+        io::stdin()
+            .lock()
+            .split(config.line_split as u8)
+            .for_each(|line| {
+                // STDIN mode handles errors line-by-line and just prints them without aborting
+                if let Err(warning) = stdin_line(&config, line) {
+                    eprintln!("{}", warning);
+                }
+            });
     } else {
         // Args mode
         //eprintln!("Args mode");
@@ -69,18 +73,20 @@ fn app() -> Result<()> {
     Ok(())
 }
 
-fn stdin_line(config: &RuntimeConfig, line: io::Result<String>) -> Result<()> {
-    let line = line?;
+fn stdin_line(config: &RuntimeConfig, io_bytes: io::Result<Vec<u8>>) -> Result<()> {
+    let bytes = io_bytes?;
+    let line = std::str::from_utf8(&bytes)?;
     let mut words = line.split(&config.word_split);
     let a = words.next().ok_or(InsufficientArguments(None))?;
-    let b = words.next().ok_or(InsufficientArguments(None))?;
+    let b = words.next().ok_or(InsufficientArguments(None))?.trim_end();
 
     if words.next().is_some() {
         eprintln!("More words than expected on line");
     }
 
-    if let Some(pm) = portmanteau(a, b) {
-        println!("{}", pm);
+    match portmanteau(a, b) {
+        Some(pm) => println!("{}", pm),
+        None => return Err(NoneProduced((a.to_string(), b.to_string()))),
     }
     Ok(())
 }
@@ -115,8 +121,12 @@ fn args_mode(config: &RuntimeConfig, pargs: pico_args::Arguments) -> Result<()> 
             .ok_or(InsufficientArguments(Some(1)))?
             .to_string_lossy();
         let mut s_iter = s.split(&config.word_split);
-        let a = s_iter.next().ok_or(BadSplit(config.word_split.clone()))?;
-        let b = s_iter.next().ok_or(BadSplit(config.word_split.clone()))?;
+        let a = s_iter
+            .next()
+            .ok_or(BadWordSplit(config.word_split.clone()))?;
+        let b = s_iter
+            .next()
+            .ok_or(BadWordSplit(config.word_split.clone()))?;
         match portmanteau(a, b) {
             Some(pm) => println!("{}", pm),
             None => return Err(NoneProduced((a.into(), b.into()))),
