@@ -18,6 +18,9 @@ version = "0.4"
 default-features = false
 features = ["combined-flags"]
 
+[dev-dependencies]
+assert_cmd = "1.0"
+
 [[bin]]
 name = "portmanteau"
 path = "src/main.rs"

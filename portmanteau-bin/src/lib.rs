@@ -80,3 +80,64 @@ impl From<io::Error> for BinError {
         BinError::StdinEnd(io_error)
     }
 }
+
+#[cfg(test)]
+mod unit_tests {
+    use crate::RuntimeConfig;
+    use pico_args::Arguments;
+    use std::ffi::OsString;
+
+    // https://github.com/RazrFalcon/pico-args/blob/3014e061ee8fe54ecbab8a5fa6e78ccb5c4b8b79/tests/tests.rs#L6-L8
+    fn to_pico_vec(args: &[&str]) -> Vec<OsString> {
+        args.iter().map(|s| s.to_string().into()).collect()
+    }
+
+    #[test]
+    fn default() {
+        let mut pargs = Arguments::from_vec(to_pico_vec(&[]));
+        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        assert_eq!(config.split_on, RuntimeConfig::default().split_on);
+    }
+
+    #[test]
+    fn short_split() {
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["-s", "."]));
+        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        assert_eq!(&config.split_on, ".");
+    }
+
+    #[test]
+    fn long_split() {
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["--split", "."]));
+        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        assert_eq!(&config.split_on, ".");
+    }
+
+    #[test]
+    fn string_split() {
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["--split", ".-."]));
+        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        assert_eq!(&config.split_on, ".-.");
+    }
+
+    #[test]
+    fn multiple_splits() {
+        // Short option is checked first
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["--split", ".", "-s", ","]));
+        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        assert_eq!(&config.split_on, ",");
+
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["-s", ".", "--split", ","]));
+        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        assert_eq!(&config.split_on, ".");
+
+        // First choice is taken when multiple identical flags are given
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["-s", ".", "-s", ","]));
+        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        assert_eq!(&config.split_on, ".");
+
+        let mut pargs = Arguments::from_vec(to_pico_vec(&["--split", ".", "--split", ","]));
+        let config = RuntimeConfig::from_pico_args(&mut pargs);
+        assert_eq!(&config.split_on, ".");
+    }
+}
