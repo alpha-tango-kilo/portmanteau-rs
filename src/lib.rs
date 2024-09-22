@@ -1,17 +1,24 @@
 #![deny(missing_docs)]
 #![forbid(unsafe_code)]
 
-//! A portmanteau is a made up word derived as a combination of two other words, e.g. "liquid" + "slinky" = "liquinky"
+//! A portmanteau is a made up word derived as a combination of two other words,
+//! e.g. "liquid" + "slinky" = "liquinky"
 //!
-//! It isn't always possible to produce a portmanteau from the input words (there are some quality checks in place), so the exposed `portmanteau` function returns an `Option<String>`.
-//! This is currently the only function the crate exposes
+//! It isn't always possible to produce a portmanteau from the input words
+//! (there are some quality checks in place), so the exposed `portmanteau`
+//! function returns an `Option<String>`. This is currently the only function
+//! the crate exposes
 //!
 //! This library's initial implementation was largely inspired by the work of [jamcowl's portmanteau bot](https://github.com/jamcowl/PORTMANTEAU-BOT).
-//! The full implementation is not available in their repository and over time my implementation may differ from theirs in terms of approach and output (it already does in some cases)
+//! The full implementation is not available in their repository and over time
+//! my implementation may differ from theirs in terms of approach and output (it
+//! already does in some cases)
 //!
-//! Please do not hold myself (or any contributer to this repository) accountable for any derogatory words or slurs you are able to have this algorithm produce.
-//! There are no checks for bad language in place, and there are no plans to add any.
-//! It is not my (or any contributer's) job to determine what is or isn't offensive
+//! Please do not hold myself (or any contributer to this repository)
+//! accountable for any derogatory words or slurs you are able to have this
+//! algorithm produce. There are no checks for bad language in place, and there
+//! are no plans to add any. It is not my (or any contributer's) job to
+//! determine what is or isn't offensive
 
 use smallvec::SmallVec;
 
@@ -56,7 +63,8 @@ fn portmanteau_by_trios(a: &str, b: &str) -> Option<String> {
     let b_trios = &b_trios[..b_trios.len() - 2];
 
     // Find indexes of matching trios
-    // Could optimise by looking at number of shared letters and skipping more entries in the trio if no letters are shared
+    // Could optimise by looking at number of shared letters and skipping more
+    // entries in the trio if no letters are shared
     for (a_pos, a_trio) in a_trios.iter().enumerate() {
         for (b_pos, b_trio) in b_trios.iter().enumerate() {
             if a_trio == b_trio {
@@ -74,9 +82,12 @@ fn validate(s: &str) -> bool {
 }
 
 fn portmanteau_by_common_vowels(a: &str, b: &str) -> Option<String> {
-    // Find locations of common vowels, but not those that are too close to the start or end
+    // Find locations of common vowels, but not those that are too close to the
+    // start or end
     for c in VOWELS {
-        if let Some(a_index) = a[..a.len() - MATCHING_VOWEL_SEARCH_MARGIN].rfind(c) {
+        if let Some(a_index) =
+            a[..a.len() - MATCHING_VOWEL_SEARCH_MARGIN].rfind(c)
+        {
             if let Some(b_index) = b[MATCHING_VOWEL_SEARCH_MARGIN..].find(c) {
                 //println!("Found matching vowel pair");
                 return Some(format!(
@@ -100,25 +111,19 @@ fn portmanteau_by_any_vowels(a: &str, b: &str) -> Option<String> {
 
 /// This function creates a portmanteau of the two given words if possible
 ///
-/// Both inputs given should be lowercase single words, without punctuation, and 5 or more letters in length.
-/// Doing so would result in receiving `None`
+/// Both inputs given should be lowercase single words, without punctuation, and
+/// 5 or more letters in length. Doing so would result in receiving `None`
 ///
 /// # Examples
 ///
 /// ```
 /// use portmanteau::portmanteau;
 ///
-///     let something = portmanteau("fluffy", "turtle");
-///     assert_eq!(
-///     something,
-///     Some(String::from("flurtle"))
-///     );
+/// let something = portmanteau("fluffy", "turtle");
+/// assert_eq!(something, Some(String::from("flurtle")));
 ///
-///     let nothing = portmanteau("tiny", "word");
-///     assert_eq!(
-///     nothing,
-///     None
-///     );
+/// let nothing = portmanteau("tiny", "word");
+/// assert_eq!(nothing, None);
 /// ```
 
 pub fn portmanteau(a: &str, b: &str) -> Option<String> {
@@ -214,7 +219,8 @@ mod unit_tests {
         assert_eq!(
             portmanteau("sdfghjk", "qwrdfgvbnm"),
             Some("sdfgvbnm".to_string()),
-            "The portmanteau function is rejecting due to lack of vowels too early!"
+            "The portmanteau function is rejecting due to lack of vowels too \
+             early!"
         );
     }
 

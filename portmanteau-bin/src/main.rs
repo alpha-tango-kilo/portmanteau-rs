@@ -1,27 +1,31 @@
 #![forbid(unsafe_code)]
 
+use std::{io, io::BufRead, process};
+
 use portmanteau::portmanteau;
-use portmanteau_bin::BinError::*;
-use portmanteau_bin::*;
-use std::io::BufRead;
-use std::{io, process};
+use portmanteau_bin::{BinError::*, *};
 
 const HELP: &str = "\
 portmanteau
 
 USAGE:
-  portmanteau [OPTIONS] [WORD 1] [WORD 2]           Words to combine given as arguments
-  portmanteau [OPTIONS] -                           Words to combine taken from STDIN
+  portmanteau [OPTIONS] [WORD 1] [WORD 2]           Words to combine given as \
+                    arguments
+  portmanteau [OPTIONS] -                           Words to combine taken \
+                    from STDIN
 
 OPTIONS:
-  -w [delimiter], --word-split [delimiter]          Specify the string between the two words being input
-  -l [delimiter], --line-split [delimiter]          Specify the character between each pair of words (STDIN mode only)
+  -w [delimiter], --word-split [delimiter]          Specify the string between \
+                    the two words being input
+  -l [delimiter], --line-split [delimiter]          Specify the character \
+                    between each pair of words (STDIN mode only)
   -h, --help                                        Access this help text
   -v, --version                                     Print the program version
 
 EXIT CODES:
   0                                                 All good
-  1                                                 No portmanteau produced (in arguments mode)
+  1                                                 No portmanteau produced \
+                    (in arguments mode)
   2                                                 User error
   3                                                 Program error
 ";
@@ -60,7 +64,8 @@ fn app() -> Result<()> {
             .lock()
             .split(config.line_split as u8)
             .for_each(|line| {
-                // STDIN mode handles errors line-by-line and just prints them without aborting
+                // STDIN mode handles errors line-by-line and just prints them
+                // without aborting
                 if let Err(warning) = stdin_line(&config, line) {
                     eprintln!("{}", warning);
                 }
@@ -73,7 +78,10 @@ fn app() -> Result<()> {
     Ok(())
 }
 
-fn stdin_line(config: &RuntimeConfig, io_bytes: io::Result<Vec<u8>>) -> Result<()> {
+fn stdin_line(
+    config: &RuntimeConfig,
+    io_bytes: io::Result<Vec<u8>>,
+) -> Result<()> {
     let bytes = io_bytes?;
     let line = std::str::from_utf8(&bytes)?;
     let mut words = line.split(&config.word_split);
@@ -91,7 +99,10 @@ fn stdin_line(config: &RuntimeConfig, io_bytes: io::Result<Vec<u8>>) -> Result<(
     Ok(())
 }
 
-fn args_mode(config: &RuntimeConfig, pargs: pico_args::Arguments) -> Result<()> {
+fn args_mode(
+    config: &RuntimeConfig,
+    pargs: pico_args::Arguments,
+) -> Result<()> {
     let remaining_args = pargs.finish();
 
     if config.is_split_whitespace() {

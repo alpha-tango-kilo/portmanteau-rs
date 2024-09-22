@@ -1,6 +1,7 @@
+use std::error::Error;
+
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use portmanteau::portmanteau;
-use std::error::Error;
 
 // TODO: benchmark by groups (trio, matching vowel, any vowel)
 
