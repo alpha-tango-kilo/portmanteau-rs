@@ -145,14 +145,8 @@ pub fn portmanteau(a: &str, b: &str) -> Option<String> {
         .or_else(|| portmanteau_by_common_vowels(a, b))
         // Step 5: Match any two vowels
         .or_else(|| portmanteau_by_any_vowels(a, b))
-        // Step 6: Make sure we aren't outputting either input word
-        .and_then(|pm| {
-            if !pm.eq(a) && !pm.eq(b) {
-                Some(pm)
-            } else {
-                None
-            }
-        })
+        // Step 6: Make sure we aren't outputting a substring of an input word
+        .filter(|pm| !(a.contains(pm) || b.contains(pm)))
 }
 
 #[cfg(test)]
@@ -239,5 +233,10 @@ mod unit_tests {
         assert!(!validate("s p a c e s"));
         assert!(!validate("😃😂😉🤩🙄"));
         assert!(!validate("accénts"))
+    }
+
+    #[test]
+    fn filter_out_substrings() {
+        assert_eq!(portmanteau("around", "later"), None);
     }
 }
