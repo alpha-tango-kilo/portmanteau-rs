@@ -79,22 +79,31 @@ fn validate(s: &str) -> bool {
     s.len() >= MIN_WORD_SIZE && s.chars().all(|c| c.is_ascii_lowercase())
 }
 
-fn portmanteau_by_common_vowels(a: &str, b: &str) -> Option<String> {
-    // Find locations of common vowels, but not those that are too close to the
-    // start or end
+/// Find locations of common vowels, but not those that are too close to the
+/// start or end
+fn portmanteau_by_common_vowels(
+    left_word: &str,
+    right_word: &str,
+) -> Option<String> {
     for c in VOWELS {
-        if let Some(a_index) =
-            a[..a.len() - MATCHING_VOWEL_SEARCH_MARGIN].rfind(c)
-        {
-            if let Some(b_index) = b[MATCHING_VOWEL_SEARCH_MARGIN..].find(c) {
-                //println!("Found matching vowel pair");
-                return Some(format!(
-                    "{}{}",
-                    &a[..a_index],
-                    &b[b_index + MATCHING_VOWEL_SEARCH_MARGIN..]
-                ));
-            }
-        }
+        // Find right-most vowel in left word
+        let Some(a_index) = left_word
+            [..left_word.len() - MATCHING_VOWEL_SEARCH_MARGIN]
+            .rfind(c)
+        else {
+            continue;
+        };
+        // Find left-most vowel in right word
+        let Some(b_index) = right_word[MATCHING_VOWEL_SEARCH_MARGIN..].find(c)
+        else {
+            continue;
+        };
+        // Make the words kiss
+        return Some(format!(
+            "{}{}",
+            &left_word[..a_index],
+            &right_word[b_index + MATCHING_VOWEL_SEARCH_MARGIN..]
+        ));
     }
     None
 }
