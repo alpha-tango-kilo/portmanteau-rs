@@ -20,10 +20,7 @@
 //! are no plans to add any. It is not my (or any contributer's) job to
 //! determine what is or isn't offensive
 
-use smallvec::SmallVec;
-
 const MIN_WORD_SIZE: usize = 5;
-const EXPECTED_TRIOS: usize = 3;
 const MATCHING_VOWEL_SEARCH_MARGIN: usize = 1;
 const VOWELS: [char; 5] = ['a', 'e', 'i', 'o', 'u'];
 
@@ -36,19 +33,17 @@ fn has_vowel(s: &str) -> bool {
     s.contains(&VOWELS[..])
 }
 
-fn trios_of(s: &str) -> SmallVec<[&str; EXPECTED_TRIOS]> {
+fn trios_of(
+    string: &str,
+) -> impl DoubleEndedIterator<Item = &str> + ExactSizeIterator {
     // Shouldn't happen in real world so leaving as debug assertion
     // The for loop will panic if it happens
     debug_assert!(
-        s.len() >= 3,
+        string.len() >= 3,
         "Trios shouldn't be asked for from words with less than 3 letters"
     );
 
-    let mut trios = SmallVec::new();
-    for n in 0..s.len() - 2 {
-        trios.push(&s[n..n + 3]);
-    }
-    trios
+    (0..string.len() - 2).map(move |index| &string[index..index + 3])
 }
 
 fn portmanteau_by_trios(a: &str, b: &str) -> Option<String> {
@@ -58,22 +53,25 @@ fn portmanteau_by_trios(a: &str, b: &str) -> Option<String> {
         MIN_WORD_SIZE
     );
 
-    let a_trios = &trios_of(a)[1..];
-    let b_trios = &trios_of(b);
-    let b_trios = &b_trios[..b_trios.len() - 2];
+    let a_trios = trios_of(a).skip(1);
 
     // Find indexes of matching trios
     // Could optimise by looking at number of shared letters and skipping more
     // entries in the trio if no letters are shared
-    for (a_pos, a_trio) in a_trios.iter().enumerate() {
-        for (b_pos, b_trio) in b_trios.iter().enumerate() {
-            if a_trio == b_trio {
-                //println!("Found matching trios");
-                return Some(format!("{}{}", &a[..a_pos + 1], &b[b_pos..]));
-            }
-        }
-    }
-    None
+    a_trios
+        .enumerate()
+        // .rev here and in b_trios prioritises finding longer portmaneau by
+        // searching from the end of `a` and the start of `b`
+        .rev()
+        // Cartesian product with b_trios
+        .flat_map(|a_trio_tup| {
+            let b_trios = trios_of(b).enumerate().rev().skip(2).rev();
+            b_trios.map(move |b_trio_tup| (a_trio_tup, b_trio_tup))
+        })
+        .find(|((_, a_trio), (_, b_trio))| a_trio == b_trio)
+        .map(|((a_pos, _), (b_pos, _))| {
+            format!("{}{}", &a[..a_pos + 1], &b[b_pos..])
+        })
 }
 
 #[inline]
@@ -173,15 +171,15 @@ mod unit_tests {
     fn trios() {
         let solutions: [&str; 3] = ["abc", "bcd", "cde"];
 
-        assert_eq!(*trios_of("abc"), solutions[0..1]);
-        assert_eq!(*trios_of("abcd"), solutions[0..2]);
-        assert_eq!(*trios_of("abcde"), solutions[0..3]);
+        assert_eq!(trios_of("abc").collect::<Vec<_>>(), solutions[0..1]);
+        assert_eq!(*trios_of("abcd").collect::<Vec<_>>(), solutions[0..2]);
+        assert_eq!(*trios_of("abcde").collect::<Vec<_>>(), solutions[0..3]);
     }
 
     #[test]
     #[should_panic]
     fn trios_panic_too_short() {
-        trios_of("");
+        trios_of("").for_each(drop);
     }
 
     #[test]
