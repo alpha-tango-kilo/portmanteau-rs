@@ -125,6 +125,9 @@ pub fn portmanteau(left_word: &str, right_word: &str) -> Option<String> {
     if !(validate(left_word) && validate(right_word)) {
         return None;
     }
+    let acceptable = |portmanteau: &str| {
+        !(left_word.contains(portmanteau) || right_word.contains(portmanteau))
+    };
 
     // Step 2: Try and get a portmanteau by trios
     portmanteau_by_trios(left_word, right_word)
@@ -139,16 +142,19 @@ pub fn portmanteau(left_word: &str, right_word: &str) -> Option<String> {
                 left_vowels.iter().zip(right_vowels.deref())
             {
                 match (left_vowel_index, right_vowel_index) {
-                    (Some(_), Some(_)) => {
-                        // Matching vowels is best-case, immediately break & use
-                        // this
-                        // TODO: what if the portmanteau this produces is
-                        //       invalid? We should check other solutions
-                        //       instead of returning None, e.g. "russian"
-                        //       + "businessman" -> "russinessman"
-                        chosen_left_vowel_index = *left_vowel_index;
-                        chosen_right_vowel_index = *right_vowel_index;
-                        break;
+                    (Some(left_vowel_index), Some(right_vowel_index)) => {
+                        // Matching vowels is best-case, immediately see if
+                        // it'll work
+                        let potential_answer = format!(
+                            "{}{}",
+                            &left_word[..*left_vowel_index],
+                            &right_word[*right_vowel_index..],
+                        );
+                        if acceptable(&potential_answer) {
+                            return Some(potential_answer);
+                        }
+                        chosen_left_vowel_index = Some(*left_vowel_index);
+                        chosen_right_vowel_index = Some(*right_vowel_index);
                     },
                     (Some(left_index), None) => chosen_left_vowel_index
                         .replace_if(|inner| left_index > inner, *left_index),
@@ -175,10 +181,7 @@ pub fn portmanteau(left_word: &str, right_word: &str) -> Option<String> {
                 },
             )
         })
-        .filter(|portmanteau| {
-            !(left_word.contains(portmanteau)
-                || right_word.contains(portmanteau))
-        })
+        .filter(|portmanteau| acceptable(portmanteau))
 }
 
 trait OptionExt<T> {
@@ -251,7 +254,7 @@ mod unit_tests {
     #[test]
     #[should_panic]
     fn by_trios_panic_too_short() {
-        portmanteau_by_trios("smol", "word");
+        portmanteau_by_trios("tin", "can");
     }
 
     #[test]
