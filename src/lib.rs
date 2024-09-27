@@ -22,7 +22,7 @@
 
 use std::ops::Deref;
 
-const MIN_WORD_SIZE: usize = 5;
+const MIN_WORD_SIZE: usize = 4;
 const MATCHING_VOWEL_SEARCH_MARGIN: usize = 1;
 const VOWELS: [char; 5] = ['a', 'e', 'i', 'o', 'u'];
 
@@ -142,6 +142,10 @@ pub fn portmanteau(left_word: &str, right_word: &str) -> Option<String> {
                     (Some(_), Some(_)) => {
                         // Matching vowels is best-case, immediately break & use
                         // this
+                        // TODO: what if the portmanteau this produces is
+                        //       invalid? We should check other solutions
+                        //       instead of returning None, e.g. "russian"
+                        //       + "businessman" -> "russinessman"
                         chosen_left_vowel_index = *left_vowel_index;
                         chosen_right_vowel_index = *right_vowel_index;
                         break;
@@ -153,16 +157,16 @@ pub fn portmanteau(left_word: &str, right_word: &str) -> Option<String> {
                     (None, None) => {},
                 }
             }
+            // println!(
+            //     "\n{left_vowels:?} <- {left_word:?} -> \
+            //      {chosen_left_vowel_index:?}",
+            // );
+            // println!(
+            //     "{right_vowels:?} <- {right_word:?} -> \
+            //      {chosen_right_vowel_index:?}",
+            // );
             chosen_left_vowel_index.zip(chosen_right_vowel_index).map(
                 |(left_vowel_index, right_vowel_index)| {
-                    // println!(
-                    //     "{left_vowels:?} <- {left_word:?} -> \
-                    //      {left_vowel_index}"
-                    // );
-                    // println!(
-                    //     "{right_vowels:?} <- {right_word:?} -> \
-                    //      {right_vowel_index}"
-                    // );
                     format!(
                         "{}{}",
                         &left_word[..left_vowel_index],
@@ -253,8 +257,8 @@ mod unit_tests {
     #[test]
     fn validation() {
         assert!(validate("hello"));
+        assert!(validate("smol"));
         assert!(!validate("Hello"));
-        assert!(!validate("smol"));
         assert!(!validate("symbols!"));
         assert!(!validate("s p a c e s"));
         assert!(!validate("😃😂😉🤩🙄"));
