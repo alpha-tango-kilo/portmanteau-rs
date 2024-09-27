@@ -93,15 +93,43 @@ fn portmanteau_by_trios(a: &str, b: &str) -> Option<String> {
             let b_trios = trios_of(b).enumerate().rev().skip(2).rev();
             b_trios.map(move |b_trio_tup| (a_trio_tup, b_trio_tup))
         })
-        .find(|((_, a_trio), (_, b_trio))| a_trio == b_trio)
-        .map(|((a_pos, _), (b_pos, _))| {
-            format!("{}{}", &a[..a_pos + 1], &b[b_pos..])
+        .filter(|((_, a_trio), (_, b_trio))| a_trio == b_trio)
+        .find_map(|((a_pos, _), (b_pos, _))| {
+            make_if_acceptable(a, a_pos + 1, b, b_pos)
         })
 }
 
 #[inline]
 fn validate(s: &str) -> bool {
     s.len() >= MIN_WORD_SIZE && s.chars().all(|c| c.is_ascii_lowercase())
+}
+
+/// Check if the portmanteau made with these two indices would be a
+/// substring of an input word, and if not, allocate it!
+fn make_if_acceptable(
+    left_word: &str,
+    left_index: usize,
+    right_word: &str,
+    right_index: usize,
+) -> Option<String> {
+    let first_fragment = &left_word[..left_index];
+    let second_fragment = &right_word[right_index..];
+    for input_word in [left_word, right_word] {
+        let Some(first_frag_index) = input_word.find(first_fragment) else {
+            continue;
+        };
+        if input_word[first_frag_index + first_fragment.len()..]
+            .starts_with(second_fragment)
+        {
+            // Portmanteau would be substring of an input word
+            return None;
+        }
+    }
+    Some(format!(
+        "{}{}",
+        &left_word[..left_index],
+        &right_word[right_index..],
+    ))
 }
 
 /// This function creates a portmanteau of the two given words if possible
@@ -125,63 +153,60 @@ pub fn portmanteau(left_word: &str, right_word: &str) -> Option<String> {
     if !(validate(left_word) && validate(right_word)) {
         return None;
     }
-    let acceptable = |portmanteau: &str| {
-        !(left_word.contains(portmanteau) || right_word.contains(portmanteau))
-    };
 
     // Step 2: Try and get a portmanteau by trios
-    portmanteau_by_trios(left_word, right_word)
-        .or_else(|| {
-            // Step 3: Try and join on vowels (ideally a matching pair)
-            let left_vowels = VowelMap::from_rtl(left_word);
-            let right_vowels = VowelMap::from_ltr(right_word);
+    portmanteau_by_trios(left_word, right_word).or_else(|| {
+        // Step 3: Try and join on vowels (ideally a matching pair)
+        let left_vowels = VowelMap::from_rtl(left_word);
+        let right_vowels = VowelMap::from_ltr(right_word);
 
-            let mut chosen_left_vowel_index: Option<usize> = None;
-            let mut chosen_right_vowel_index: Option<usize> = None;
-            for (left_vowel_index, right_vowel_index) in
-                left_vowels.iter().zip(right_vowels.deref())
-            {
-                match (left_vowel_index, right_vowel_index) {
-                    (Some(left_vowel_index), Some(right_vowel_index)) => {
-                        // Matching vowels is best-case, immediately see if
-                        // it'll work
-                        let potential_answer = format!(
-                            "{}{}",
-                            &left_word[..*left_vowel_index],
-                            &right_word[*right_vowel_index..],
-                        );
-                        if acceptable(&potential_answer) {
-                            return Some(potential_answer);
-                        }
-                        chosen_left_vowel_index = Some(*left_vowel_index);
-                        chosen_right_vowel_index = Some(*right_vowel_index);
-                    },
-                    (Some(left_index), None) => chosen_left_vowel_index
-                        .replace_if(|inner| left_index > inner, *left_index),
-                    (None, Some(right_index)) => chosen_right_vowel_index
-                        .replace_if(|inner| right_index < inner, *right_index),
-                    (None, None) => {},
-                }
-            }
-            // println!(
-            //     "\n{left_vowels:?} <- {left_word:?} -> \
-            //      {chosen_left_vowel_index:?}",
-            // );
-            // println!(
-            //     "{right_vowels:?} <- {right_word:?} -> \
-            //      {chosen_right_vowel_index:?}",
-            // );
-            chosen_left_vowel_index.zip(chosen_right_vowel_index).map(
-                |(left_vowel_index, right_vowel_index)| {
-                    format!(
-                        "{}{}",
-                        &left_word[..left_vowel_index],
-                        &right_word[right_vowel_index..],
-                    )
+        let mut chosen_left_vowel_index: Option<usize> = None;
+        let mut chosen_right_vowel_index: Option<usize> = None;
+        for (left_vowel_index, right_vowel_index) in
+            left_vowels.iter().zip(right_vowels.deref())
+        {
+            match (left_vowel_index, right_vowel_index) {
+                (Some(left_vowel_index), Some(right_vowel_index)) => {
+                    // Matching vowels is best-case, immediately see if
+                    // it works
+                    let potential_answer = make_if_acceptable(
+                        left_word,
+                        *left_vowel_index,
+                        right_word,
+                        *right_vowel_index,
+                    );
+                    if potential_answer.is_some() {
+                        return potential_answer;
+                    }
+                    chosen_left_vowel_index = Some(*left_vowel_index);
+                    chosen_right_vowel_index = Some(*right_vowel_index);
                 },
-            )
-        })
-        .filter(|portmanteau| acceptable(portmanteau))
+                (Some(left_index), None) => chosen_left_vowel_index
+                    .replace_if(|inner| left_index > inner, *left_index),
+                (None, Some(right_index)) => chosen_right_vowel_index
+                    .replace_if(|inner| right_index < inner, *right_index),
+                (None, None) => {},
+            }
+        }
+        // println!(
+        //     "\n{left_vowels:?} <- {left_word:?} -> \
+        //      {chosen_left_vowel_index:?}",
+        // );
+        // println!(
+        //     "{right_vowels:?} <- {right_word:?} -> \
+        //      {chosen_right_vowel_index:?}",
+        // );
+        chosen_left_vowel_index
+            .zip(chosen_right_vowel_index)
+            .and_then(|(left_vowel_index, right_vowel_index)| {
+                make_if_acceptable(
+                    left_word,
+                    left_vowel_index,
+                    right_word,
+                    right_vowel_index,
+                )
+            })
+    })
 }
 
 trait OptionExt<T> {
