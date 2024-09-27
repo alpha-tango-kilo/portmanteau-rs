@@ -1,35 +1,30 @@
-use std::error::Error;
-
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use portmanteau::portmanteau;
 
-// TODO: benchmark by groups (trio, matching vowel, any vowel)
-
-pub fn csv_file(c: &mut Criterion) -> Result<(), Box<dyn Error>> {
-    let mut reader = csv::Reader::from_path("./benches/input_pairs.csv")
-        .expect("Unable to find input file for benchmark");
+pub fn csv_file(criterion: &mut Criterion) {
+    let mut reader = csv::Reader::from_path("benches/input_pairs.csv")
+        .expect("unable to find input file for benchmark");
     let input_pairs = reader
         .records()
         .map(|record| {
-            let r = record?;
-            let a = String::from(r.get(0).unwrap());
-            let b = String::from(r.get(1).unwrap());
-            Ok((a, b))
+            let record = record.expect("failed to parse input file");
+            let left_word = String::from(record.get(0).unwrap());
+            let right_word = String::from(record.get(1).unwrap());
+            (left_word, right_word)
         })
-        .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
+        .collect::<Vec<_>>();
 
-    c.bench_with_input(
+    criterion.bench_with_input(
         BenchmarkId::new("CSV file", input_pairs.len()),
         &input_pairs,
-        |b, input_pairs| {
-            b.iter(|| {
-                input_pairs.iter().for_each(|(a, b)| {
-                    portmanteau(a, b);
-                })
-            })
+        |bencher, input_pairs| {
+            bencher.iter(|| {
+                input_pairs.iter().for_each(|(left_word, right_word)| {
+                    portmanteau(left_word, right_word);
+                });
+            });
         },
     );
-    Ok(())
 }
 
 criterion_group!(benches, csv_file);

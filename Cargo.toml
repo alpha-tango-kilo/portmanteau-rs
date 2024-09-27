@@ -19,7 +19,7 @@ members = [
 [dependencies]
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.5"
 csv = "1.1"
 
 # https://bheisler.github.io/criterion.rs/book/faq.html#cargo-bench-gives-unrecognized-option-errors-for-valid-command-line-options
