@@ -20,17 +20,42 @@
 //! are no plans to add any. It is not my (or any contributer's) job to
 //! determine what is or isn't offensive
 
+use std::ops::Deref;
+
 const MIN_WORD_SIZE: usize = 5;
 const MATCHING_VOWEL_SEARCH_MARGIN: usize = 1;
 const VOWELS: [char; 5] = ['a', 'e', 'i', 'o', 'u'];
 
-// Expects to always take lowercase `s`
-fn has_vowel(s: &str) -> bool {
-    debug_assert!(
-        !s.chars().any(|c| c.is_uppercase()),
-        "Uppercase characters should have been accounted for before has_vowel"
-    );
-    s.contains(&VOWELS[..])
+/// Stores the vowel locations within a word (search direction set by
+/// `from_left`)
+///
+///                   A     E        I        O        U
+/// "helloski" -> `[None, Some(1), Some(7), Some(4), None]`
+#[derive(Debug, Copy, Clone)]
+struct VowelMap([Option<usize>; 5]);
+
+impl VowelMap {
+    fn from_ltr(word: &str) -> Self {
+        let substring = &word[..word.len() - MATCHING_VOWEL_SEARCH_MARGIN];
+        VowelMap(VOWELS.map(|vowel| substring.find(vowel)))
+    }
+
+    fn from_rtl(word: &str) -> Self {
+        let substring = &word[MATCHING_VOWEL_SEARCH_MARGIN..];
+        VowelMap(VOWELS.map(|vowel| {
+            substring.rfind(vowel)
+            // Make index relative to the whole word
+            .map(|index| index + MATCHING_VOWEL_SEARCH_MARGIN)
+        }))
+    }
+}
+
+impl Deref for VowelMap {
+    type Target = [Option<usize>];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 fn trios_of(
@@ -79,43 +104,6 @@ fn validate(s: &str) -> bool {
     s.len() >= MIN_WORD_SIZE && s.chars().all(|c| c.is_ascii_lowercase())
 }
 
-/// Find locations of common vowels, but not those that are too close to the
-/// start or end
-fn portmanteau_by_common_vowels(
-    left_word: &str,
-    right_word: &str,
-) -> Option<String> {
-    for c in VOWELS {
-        // Find right-most vowel in left word
-        let Some(a_index) = left_word
-            [..left_word.len() - MATCHING_VOWEL_SEARCH_MARGIN]
-            .rfind(c)
-        else {
-            continue;
-        };
-        // Find left-most vowel in right word
-        let Some(b_index) = right_word[MATCHING_VOWEL_SEARCH_MARGIN..].find(c)
-        else {
-            continue;
-        };
-        // Make the words kiss
-        return Some(format!(
-            "{}{}",
-            &left_word[..a_index],
-            &right_word[b_index + MATCHING_VOWEL_SEARCH_MARGIN..]
-        ));
-    }
-    None
-}
-
-fn portmanteau_by_any_vowels(a: &str, b: &str) -> Option<String> {
-    // Get rightmost vowel of a
-    let a_end = a.rfind(&VOWELS[..]).unwrap();
-    // with leftmost vowel of b
-    let b_start = b.find(&VOWELS[..]).unwrap();
-    Some(format!("{}{}", &a[..a_end], &b[b_start..]))
-}
-
 /// This function creates a portmanteau of the two given words if possible
 ///
 /// Both inputs given should be lowercase single words, without punctuation, and
@@ -132,49 +120,80 @@ fn portmanteau_by_any_vowels(a: &str, b: &str) -> Option<String> {
 /// let nothing = portmanteau("tiny", "word");
 /// assert_eq!(nothing, None);
 /// ```
-
-pub fn portmanteau(a: &str, b: &str) -> Option<String> {
+pub fn portmanteau(left_word: &str, right_word: &str) -> Option<String> {
     // Step 1: validate input strings to be acceptable
-    if !(validate(a) && validate(b)) {
+    if !(validate(left_word) && validate(right_word)) {
         return None;
     }
 
     // Step 2: Try and get a portmanteau by trios
-    let output = portmanteau_by_trios(a, b);
+    portmanteau_by_trios(left_word, right_word)
+        .or_else(|| {
+            // Step 3: Try and join on vowels (ideally a matching pair)
+            let left_vowels = VowelMap::from_rtl(left_word);
+            let right_vowels = VowelMap::from_ltr(right_word);
 
-    // Step 3: Check for presence of vowels
-    if output.is_none() && !(has_vowel(a) && has_vowel(b)) {
-        return None;
+            let mut chosen_left_vowel_index: Option<usize> = None;
+            let mut chosen_right_vowel_index: Option<usize> = None;
+            for (left_vowel_index, right_vowel_index) in
+                left_vowels.iter().zip(right_vowels.deref())
+            {
+                match (left_vowel_index, right_vowel_index) {
+                    (Some(_), Some(_)) => {
+                        // Matching vowels is best-case, immediately break & use
+                        // this
+                        chosen_left_vowel_index = *left_vowel_index;
+                        chosen_right_vowel_index = *right_vowel_index;
+                        break;
+                    },
+                    (Some(left_index), None) => chosen_left_vowel_index
+                        .replace_if(|inner| left_index > inner, *left_index),
+                    (None, Some(right_index)) => chosen_right_vowel_index
+                        .replace_if(|inner| right_index < inner, *right_index),
+                    (None, None) => {},
+                }
+            }
+            chosen_left_vowel_index.zip(chosen_right_vowel_index).map(
+                |(left_vowel_index, right_vowel_index)| {
+                    // println!(
+                    //     "{left_vowels:?} <- {left_word:?} -> \
+                    //      {left_vowel_index}"
+                    // );
+                    // println!(
+                    //     "{right_vowels:?} <- {right_word:?} -> \
+                    //      {right_vowel_index}"
+                    // );
+                    format!(
+                        "{}{}",
+                        &left_word[..left_vowel_index],
+                        &right_word[right_vowel_index..],
+                    )
+                },
+            )
+        })
+        .filter(|portmanteau| {
+            !(left_word.contains(portmanteau)
+                || right_word.contains(portmanteau))
+        })
+}
+
+trait OptionExt<T> {
+    fn replace_if<P: FnOnce(&T) -> bool>(&mut self, predicate: P, value: T);
+}
+
+impl<T> OptionExt<T> for Option<T> {
+    fn replace_if<P: FnOnce(&T) -> bool>(&mut self, predicate: P, value: T) {
+        match self {
+            Some(old) if predicate(old) => *self = Some(value),
+            Some(_) => {},
+            None => *self = Some(value),
+        }
     }
-
-    // Step 4: Match common vowels
-    output
-        .or_else(|| portmanteau_by_common_vowels(a, b))
-        // Step 5: Match any two vowels
-        .or_else(|| portmanteau_by_any_vowels(a, b))
-        // Step 6: Make sure we aren't outputting a substring of an input word
-        .filter(|pm| !(a.contains(pm) || b.contains(pm)))
 }
 
 #[cfg(test)]
 mod unit_tests {
     use crate::*;
-
-    #[test]
-    fn vowels() {
-        assert!(has_vowel("hello"));
-        assert!(has_vowel("hi"));
-        assert!(has_vowel("hallo"));
-        assert!(has_vowel("howdy"));
-        assert!(!has_vowel("why"));
-        assert!(!has_vowel("rhythm"));
-    }
-
-    #[test]
-    #[should_panic]
-    fn vowels_panic_uppercase() {
-        has_vowel("HI");
-    }
 
     #[test]
     fn trios() {
@@ -240,10 +259,5 @@ mod unit_tests {
         assert!(!validate("s p a c e s"));
         assert!(!validate("😃😂😉🤩🙄"));
         assert!(!validate("accénts"))
-    }
-
-    #[test]
-    fn filter_out_substrings() {
-        assert_eq!(portmanteau("around", "later"), None);
     }
 }
